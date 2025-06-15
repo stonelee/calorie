@@ -8,6 +8,7 @@ interface FoodItem {
 }
 
 const SERVER_API_URL = 'http://localhost:3001/api/analyze-image'; // Node.js 服务器地址
+// const SERVER_API_URL = 'https://calorie-po8f.onrender.com/api/analyze-image'; // Node.js 服务器地址
 
 function ServerApp() {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);

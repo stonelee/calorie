@@ -1,4 +1,4 @@
-import express from 'express';
+import express, { Request, Response } from 'express';
 import axios from 'axios';
 import cors from 'cors';
 import bodyParser from 'body-parser';
@@ -24,13 +24,13 @@ interface FoodItem {
 }
 
 app.post('/api/analyze-image', async (req: Request, res: Response) => {
-  const { imageBase64 } = req.body;
+  const { imageBase64 } = req.body as { imageBase64?: string };
 
   if (!imageBase64) {
     return res.status(400).json({ error: 'Missing imageBase64 in request body' });
   }
 
-  if (BAILIAN_API_KEY === 'YOUR_BAILIAN_API_KEY') {
+  if (!BAILIAN_API_KEY || BAILIAN_API_KEY === 'YOUR_BAILIAN_API_KEY_HERE') {
     console.error('BAILIAN_API_KEY is not configured. Please set it in your environment variables or directly in server.ts.');
     return res.status(500).json({ error: 'API Key not configured on the server.' });
   }
@@ -70,11 +70,11 @@ app.post('/api/analyze-image', async (req: Request, res: Response) => {
     );
 
     const visionResultContent = visionResponse.data?.choices?.[0]?.message?.content;
-    if (!visionResultContent) {
+    if (typeof visionResultContent !== 'string' || !visionResultContent) {
       return res.status(500).json({ error: 'Vision model failed to return a valid result.' });
     }
 
-    const foodNames = visionResultContent.split('，').map((name: string) => name.trim()).filter((name: string) => name);
+    const foodNames = visionResultContent.split(/,|，/).map((name: string) => name.trim()).filter((name: string) => name);
     const identifiedFoods: { name: string }[] = foodNames.map((name: string) => ({ name }));
 
     if (identifiedFoods.length === 0) {
@@ -110,8 +110,8 @@ app.post('/api/analyze-image', async (req: Request, res: Response) => {
     );
 
     const calorieResultContent = calorieResponse.data?.choices?.[0]?.message?.content;
-    if (calorieResultContent) {
-      const caloriePairs = calorieResultContent.split('，').map((pair: string) => pair.trim());
+    if (typeof calorieResultContent === 'string' && calorieResultContent) {
+      const caloriePairs = calorieResultContent.split(/,|，/).map((pair: string) => pair.trim());
       const calorieMap = new Map<string, string>();
       caloriePairs.forEach((pair: string) => {
         const parts = pair.split('：');
@@ -129,9 +129,18 @@ app.post('/api/analyze-image', async (req: Request, res: Response) => {
 
     res.json({ foodItems: foodItemsWithCalories });
 
-  } catch (error: any) {
-    console.error('Error processing image analysis:', error.response ? error.response.data : error.message);
-    res.status(500).json({ error: 'Failed to analyze image on the server.' });
+  } catch (error: unknown) {
+    let errorMessage = 'Failed to analyze image on the server.';
+    if (axios.isAxiosError(error) && error.response) {
+      console.error('Error processing image analysis (Axios):', error.response.data);
+      errorMessage = error.response.data?.error?.message || error.response.data?.message || errorMessage;
+    } else if (error instanceof Error) {
+      console.error('Error processing image analysis:', error.message);
+      errorMessage = error.message;
+    } else {
+      console.error('Unknown error processing image analysis:', error);
+    }
+    res.status(500).json({ error: errorMessage });
   }
 });
 
