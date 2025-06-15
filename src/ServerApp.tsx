@@ -4,7 +4,12 @@ import './App.css'; // 复用现有的样式
 
 interface FoodItem {
   name: string;
+  weight: string;
   calories: string;
+  protein: string | null;
+  fat: string | null;
+  carbs: string | null;
+  fiber: string | null;
 }
 
 const SERVER_API_URL = 'http://localhost:3001/api/analyze-image'; // Node.js 服务器地址
@@ -88,7 +93,13 @@ function ServerApp() {
           <ul>
             {foodItems.map((item, index) => (
               <li key={index}>
-                <strong>{item.name}:</strong> {item.calories}
+                <strong>{item.name}</strong>
+                <div>重量：{item.weight}</div>
+                <div>热量：{item.calories}</div>
+                {item.protein && <div>蛋白质：{item.protein}</div>}
+                {item.fat && <div>脂肪：{item.fat}</div>}
+                {item.carbs && <div>碳水：{item.carbs}</div>}
+                {item.fiber && <div>膳食纤维：{item.fiber}</div>}
               </li>
             ))}
           </ul>
